@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     if (!secretKey || secretKey === "sk_test_your_stripe_secret_key") {
       return NextResponse.json({ url: `${baseUrl}/payment/success?provider=stripe&orderId=${orderId}&amount=${amount}&demo=true` });
     }
-    const stripe = new Stripe(secretKey, { apiVersion: "2025-02-24.acacia" });
+    const stripe = new Stripe(secretKey, { apiVersion: "2026-02-25.clover" });
     const session = await stripe.checkout.sessions.create({ payment_method_types: ["card"], line_items: [{ price_data: { currency: "krw", product_data: { name: productName }, unit_amount: amount }, quantity: 1 }], mode: "payment", success_url: `${baseUrl}/payment/success?provider=stripe&orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${baseUrl}/payment/fail?provider=stripe&reason=cancelled`, metadata: { orderId, customerName } });
     await supabase.from("payment_logs").update({ payment_key: session.id }).eq("order_id", orderId);
     return NextResponse.json({ url: session.url });
