@@ -1,25 +1,38 @@
+import "server-only";
+
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 let _supabase: SupabaseClient | null = null;
 
-export function getSupabase(): SupabaseClient {
+export function isSupabaseConfigured() {
+  return Boolean(
+    process.env.SUPABASE_URL &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
+export function getSupabase(): SupabaseClient | null {
+  if (!isSupabaseConfigured()) return null;
+
   if (!_supabase) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
-    _supabase = createClient(supabaseUrl, supabaseAnonKey);
+    _supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
   }
+
   return _supabase;
 }
 
-export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    return (getSupabase() as unknown as Record<string, unknown>)[prop as string];
-  },
-});
-
 export type PaymentLog = {
   id?: string;
-  provider: 'tosspayments' | 'naverpay' | 'kakaopay' | 'stripe';
+  provider: 'tosspayments' | 'naverpay' | 'kakaopay';
   order_id: string;
   amount: number;
   status: 'pending' | 'success' | 'fail' | 'cancelled';

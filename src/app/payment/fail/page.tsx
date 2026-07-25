@@ -14,7 +14,6 @@ function FailContent() {
     tosspayments: "토스페이먼츠",
     naverpay: "네이버페이",
     kakaopay: "카카오페이",
-    stripe: "Stripe",
   };
 
   return (

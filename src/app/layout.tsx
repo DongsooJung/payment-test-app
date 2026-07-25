@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: "결제 테스트 앱",
-  description: "토스페이먼츠, 네이버페이, 카카오페이, Stripe 결제 테스트",
+  description: "토스페이먼츠 결제와 네이버페이·카카오페이 데모 테스트",
 };
 
 export default function RootLayout({
@@ -17,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${inter.className} bg-gray-50 min-h-screen`}>
+      <body className="bg-gray-50 min-h-screen font-sans">
         <nav className="bg-white shadow-sm border-b">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <Link href="/" className="text-xl font-bold text-gray-900">
