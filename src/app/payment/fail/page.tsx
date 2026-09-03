@@ -10,12 +10,7 @@ function FailContent() {
   const reason = searchParams.get("reason") || searchParams.get("message") || "알 수 없는 오류";
   const code = searchParams.get("code") || "";
 
-  const providerNames: Record<string, string> = {
-    tosspayments: "토스페이먼츠",
-    naverpay: "네이버페이",
-    kakaopay: "카카오페이",
-    stripe: "Stripe",
-  };
+  const providerNames: Record<string, string> = { alipay: "Alipay+" };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -40,7 +35,6 @@ function FailContent() {
         </div>
         <div className="flex gap-3 justify-center">
           <Link href="/" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800">다시 시도</Link>
-          <Link href="/dashboard" className="px-4 py-2 bg-white border text-gray-700 rounded-lg text-sm hover:bg-gray-50">대시보드</Link>
         </div>
       </div>
     </div>

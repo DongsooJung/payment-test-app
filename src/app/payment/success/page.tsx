@@ -1,73 +1,52 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 function SuccessContent() {
-  const searchParams = useSearchParams();
-  const provider = searchParams.get("provider") || "unknown";
-  const orderId = searchParams.get("orderId") || "";
-  const paymentKey = searchParams.get("paymentKey") || "";
-  const amount = searchParams.get("amount") || "";
-  const demo = searchParams.get("demo") === "true";
-  const [confirmed, setConfirmed] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const paymentId = useSearchParams().get("paymentId") || "";
+  const [state, setState] = useState<"checking" | "paid" | "pending" | "error">(
+    paymentId ? "checking" : "error",
+  );
+  const [message, setMessage] = useState(paymentId ? "" : "결제 번호가 없습니다.");
 
   useEffect(() => {
-    const confirmPayment = async () => {
-      if (provider === "tosspayments" && paymentKey && orderId && amount) {
-        try {
-          const res = await fetch("/api/tosspayments/confirm", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
-          });
-          const data = await res.json();
-          if (data.success) { setConfirmed(true); } else { setError(data.error?.message || "결제 승인 실패"); }
-        } catch (e) { setError(String(e)); }
-      } else if (demo) {
-        try {
-          await fetch("/api/payments/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, status: "success", provider }) });
-        } catch {}
-        setConfirmed(true);
-      } else { setConfirmed(true); }
-    };
-    confirmPayment();
-  }, [provider, paymentKey, orderId, amount, demo]);
+    if (!paymentId) return;
+    fetch("/api/portone/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentId }),
+    })
+      .then(async (response) => ({ ok: response.ok, data: await response.json() }))
+      .then(({ ok, data }) => {
+        if (!ok) throw new Error(data.error || "결제 검증 실패");
+        setState(data.paid ? "paid" : "pending");
+      })
+      .catch((error) => {
+        setState("error");
+        setMessage(error instanceof Error ? error.message : "결제 검증 실패");
+      });
+  }, [paymentId]);
 
-  const providerNames: Record<string, string> = { tosspayments: "토스페이먼츠", naverpay: "네이버페이", kakaopay: "카카오페이", stripe: "Stripe" };
-
+  const paid = state === "paid";
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh]">
-      <div className="bg-white rounded-2xl shadow-lg border p-8 max-w-md w-full text-center">
-        {error ? (
-          <><div className="text-6xl mb-4">&#10060;</div><h1 className="text-2xl font-bold text-red-600 mb-2">결제 승인 실패</h1><p className="text-gray-500 mb-4">{error}</p></>
-        ) : confirmed ? (
-          <><div className="text-6xl mb-4">&#9989;</div><h1 className="text-2xl font-bold text-green-600 mb-2">결제 성공!</h1>
-            <div className="text-left bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
-              <div className="flex justify-between text-sm"><span className="text-gray-500">결제 수단</span><span className="font-medium">{providerNames[provider] || provider}</span></div>
-              {orderId && <div className="flex justify-between text-sm"><span className="text-gray-500">주문 번호</span><span className="font-mono text-xs">{orderId}</span></div>}
-              {amount && <div className="flex justify-between text-sm"><span className="text-gray-500">결제 금액</span><span className="font-medium">{Number(amount).toLocaleString()}원</span></div>}
-              {demo && <div className="text-xs text-orange-500 text-center mt-2">* 데모 모드 (실제 결제 없음)</div>}
-            </div>
-          </>
-        ) : (
-          <><div className="text-6xl mb-4 animate-spin">&#9203;</div><h1 className="text-2xl font-bold text-gray-700 mb-2">결제 처리 중...</h1><p className="text-gray-500">잠시만 기다려주세요.</p></>
-        )}
-        <div className="flex gap-3 justify-center">
-          <Link href="/" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800">다시 테스트</Link>
-          <Link href="/dashboard" className="px-4 py-2 bg-white border text-gray-700 rounded-lg text-sm hover:bg-gray-50">대시보드</Link>
-        </div>
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="w-full max-w-md rounded-2xl border bg-white p-8 text-center shadow-lg">
+        <div className="mb-4 text-6xl">{paid ? "✅" : state === "checking" ? "⏳" : "⚠️"}</div>
+        <h1 className={`mb-2 text-2xl font-bold ${paid ? "text-green-600" : "text-gray-800"}`}>
+          {paid ? "Alipay 결제 완료" : state === "checking" ? "결제 확인 중" : state === "pending" ? "승인 대기 중" : "결제 확인 실패"}
+        </h1>
+        <p className="mb-5 text-sm text-gray-500">
+          {paid ? "포트원 결제 내역과 주문 금액이 일치합니다." : message || "웹훅 수신 후 상태가 자동으로 갱신됩니다."}
+        </p>
+        {paymentId && <div className="mb-6 break-all rounded-lg bg-gray-50 p-3 text-left font-mono text-xs text-gray-500">{paymentId}</div>}
+        <Link href="/" className="inline-flex rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800">결제 화면으로</Link>
       </div>
     </div>
   );
 }
 
 export default function PaymentSuccessPage() {
-  return (
-    <Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><p>로딩 중...</p></div>}>
-      <SuccessContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<div className="p-10 text-center">결제 확인 중…</div>}><SuccessContent /></Suspense>;
 }
